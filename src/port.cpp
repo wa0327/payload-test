@@ -68,7 +68,12 @@ Port::~Port()
 bool Port::read_message(mavlink_message_t &message)
 {
     uint8_t buf[2048];
-    ssize_t len = recv(fd, buf, sizeof(buf), 0);
+    ssize_t len;
+
+    if (target_ip.empty())
+        len = read(fd, buf, sizeof(buf));
+    else
+        len = recv(fd, buf, sizeof(buf), 0);
 
     if (len > 0)
     {

@@ -14,15 +14,39 @@ void quit_handler(int)
 
 void send_heartbeat(Port *port)
 {
-    static time_t last_time = 0;
-    int current_time = time(nullptr);
-    if (current_time - last_time < 1)
-        return;
-    last_time = current_time;
-    mavlink_message_t heartbeat_msg;
-    mavlink_msg_heartbeat_pack(1, MAV_COMP_ID_ONBOARD_COMPUTER, &heartbeat_msg, MAV_TYPE_ONBOARD_CONTROLLER, MAV_AUTOPILOT_INVALID, 0, 0, MAV_STATE_ACTIVE);
-    port->write_message(heartbeat_msg);
+    mavlink_message_t msg;
+    mavlink_msg_heartbeat_pack(
+        1,
+        MAV_COMP_ID_ONBOARD_COMPUTER,
+        &msg,
+        MAV_TYPE_ONBOARD_CONTROLLER,
+        MAV_AUTOPILOT_INVALID,
+        0, 0, MAV_STATE_ACTIVE);
+    port->write_message(msg);
     cout << "Sent HEARTBEAT" << endl;
+
+    time_t start = time(nullptr);
+    while (running)
+    {
+        time_t now = time(nullptr);
+        if (now - start > 3)
+        {
+            cerr << "Cannot receive HEARTBEAT !!" << endl;
+            break;
+        }
+
+        if (port->read_message(msg))
+        {
+            if (msg.msgid == MAVLINK_MSG_ID_HEARTBEAT)
+            {
+                cout << "Got HEARTBEAT: ";
+                mavlink_heartbeat_t t;
+                mavlink_msg_heartbeat_decode(&msg, &t);
+                cout << "autopilot=" << (int)t.autopilot << " type=" << t.type << endl;
+                break;
+            }
+        }
+    }
 }
 
 void get_camera_settings(Port *port)

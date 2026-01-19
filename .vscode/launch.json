@@ -10,8 +10,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/payload-test",
             "args": [
-               "-u", "192.168.144.240", "-p", "14566"
-                // "-d", "/dev/ttyACM0", "-b", "115200"
+            //    "-u", "192.168.144.240", "-p", "14566"
+                "-d", "/dev/ttyACM0"
             ],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
