@@ -1,0 +1,27 @@
+#!/usr/bin/bash
+set -e
+cd $(dirname $0)
+
+PREFIX=deps
+SRC=$PREFIX/src
+
+if [ ! -d $SRC/mavlink ]; then
+    git clone --depth 1 --recurse-submodules --shallow-submodules git@github.com:mavlink/mavlink.git $SRC/mavlink
+fi
+if [ ! -d $PREFIX/include/mavlink ]; then
+    echo "➡️  Build and install MAVLink ..."
+    mkdir -p $SRC/mavlink_build
+    args=(
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_INSTALL_PREFIX=$PREFIX
+        -DMAVLINK_DIALECT=common
+        -DMAVLINK_VERSION=2.0
+    )
+    cmake -S $SRC/mavlink -B $SRC/mavlink_build "${args[@]}"
+    cmake --build $SRC/mavlink_build -- -j$(nproc) install
+fi
+
+args=(
+    -DCMAKE_BUILD_TYPE=Debug
+)
+cmake -S . -B build "${args[@]}"
