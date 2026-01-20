@@ -72,6 +72,44 @@ void send_heartbeat(Port *port)
     }
 }
 
+void get_camera_info(Port *port)
+{
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(
+        1,
+        MAV_COMP_ID_ONBOARD_COMPUTER,
+        &msg,
+        1,
+        MAV_COMP_ID_CAMERA,
+        MAV_CMD_REQUEST_MESSAGE,
+        0,
+        MAVLINK_MSG_ID_CAMERA_INFORMATION,
+        0, 0, 0, 0, 0, 0);
+    port->write_message(msg);
+    cout << "Request CAMERA_INFORMATION" << endl;
+
+    time_t start = time(nullptr);
+    while (running)
+    {
+        time_t now = time(nullptr);
+        if (now - start > 1)
+        {
+            cerr << "Cannot receive CAMERA_INFORMATION !!" << endl;
+            break;
+        }
+
+        if (port->read_message(msg))
+        {
+            if (msg.msgid == MAVLINK_MSG_ID_CAMERA_INFORMATION)
+            {
+                mavlink_camera_information_t t;
+                mavlink_msg_camera_information_decode(&msg, &t);
+                cout << "Recv CAMERA_INFORMATION camera_device_id=" << (int)t.camera_device_id << " model_name=" << t.model_name << " resolution=" << t.resolution_h << "x" << t.resolution_v  << endl;
+            }
+        }
+    }
+}
+
 void get_camera_settings(Port *port)
 {
     mavlink_message_t msg;
@@ -356,6 +394,7 @@ int main(int argc, char **argv)
     send_heartbeat(port);
     if (has_camera)
     {
+        get_camera_info(port);
         get_camera_settings(port);
         set_camera_zoom_range(port, 100);
         set_camera_zoom_range(port, 0);
