@@ -33,7 +33,7 @@ void send_heartbeat(Port *port)
     while (running)
     {
         time_t now = time(nullptr);
-        if (now - start > 2)
+        if (now - start > 1)
         {
             if (!got_respond)
                 cerr << "Cannot receive HEARTBEAT !!" << endl;
@@ -92,7 +92,7 @@ void get_camera_settings(Port *port)
     while (running)
     {
         time_t now = time(nullptr);
-        if (now - start > 3)
+        if (now - start > 2)
         {
             cerr << "Cannot receive CAMERA_SETTINGS !!" << endl;
             break;
@@ -132,7 +132,7 @@ void set_camera_zoom_range(Port *port, int range)
     while (running)
     {
         time_t now = time(nullptr);
-        if (now - start > 3)
+        if (now - start > 2)
         {
             if (!got_respond)
                 cerr << "Cannot receive CAMERA_SETTINGS !!" << endl;
@@ -172,7 +172,7 @@ void get_gimbal_manager_info(Port *port)
     while (running)
     {
         time_t now = time(nullptr);
-        if (now - start > 3)
+        if (now - start > 2)
         {
             cerr << "Cannot receive GIMBAL_MANAGER_INFORMATION !!" << endl;
             break;
@@ -203,7 +203,7 @@ void set_gimbal_manager_attitude(Port *port, float pitch, float yaw)
         1,
         MAV_COMP_ID_AUTOPILOT1,
         GIMBAL_MANAGER_FLAGS_YAW_IN_VEHICLE_FRAME,
-        1,
+        0,
         q,
         NAN, NAN, NAN);
     port->write_message(msg);
@@ -214,7 +214,7 @@ void set_gimbal_manager_attitude(Port *port, float pitch, float yaw)
     while (running)
     {
         time_t now = time(nullptr);
-        if (now - start > 3)
+        if (now - start > 2)
         {
             if (!got_respond)
                 cerr << "Cannot receive GIMBAL_DEVICE_ATTITUDE_STATUS !!" << endl;
@@ -227,8 +227,11 @@ void set_gimbal_manager_attitude(Port *port, float pitch, float yaw)
             {
                 mavlink_gimbal_device_attitude_status_t t;
                 mavlink_msg_gimbal_device_attitude_status_decode(&msg, &t);
-                cout << "Recv GIMBAL_DEVICE_ATTITUDE_STATUS gimbal_device_id=" << (int)t.gimbal_device_id << " q=[" << t.q[0] << t.q[1] << t.q[2] << t.q[3] << "]" << endl;
-                got_respond = true;
+                if (msg.compid == MAV_COMP_ID_GIMBAL)
+                {
+                    cout << "Recv GIMBAL_DEVICE_ATTITUDE_STATUS gimbal_device_id=" << (int)t.gimbal_device_id << " q=[" << t.q[0] << t.q[1] << t.q[2] << t.q[3] << "]" << endl;
+                    got_respond = true;
+                }
             }
         }
     }
@@ -254,7 +257,7 @@ void get_gimbal_device_info(Port *port)
     while (running)
     {
         time_t now = time(nullptr);
-        if (now - start > 3)
+        if (now - start > 2)
         {
             cerr << "Cannot receive GIMBAL_DEVICE_INFORMATION !!" << endl;
             break;
@@ -295,7 +298,7 @@ void set_gimbal_device_attitude(Port *port, float pitch, float yaw)
     while (running)
     {
         time_t now = time(nullptr);
-        if (now - start > 3)
+        if (now - start > 2)
         {
             if (!got_respond)
                 cerr << "Cannot receive GIMBAL_DEVICE_ATTITUDE_STATUS !!" << endl;
@@ -308,8 +311,11 @@ void set_gimbal_device_attitude(Port *port, float pitch, float yaw)
             {
                 mavlink_gimbal_device_attitude_status_t t;
                 mavlink_msg_gimbal_device_attitude_status_decode(&msg, &t);
-                cout << "Recv GIMBAL_DEVICE_ATTITUDE_STATUS gimbal_device_id=" << (int)t.gimbal_device_id << " q=[" << t.q[0] << t.q[1] << t.q[2] << t.q[3] << "]" << endl;
-                got_respond = true;
+                if (msg.compid == MAV_COMP_ID_GIMBAL)
+                {
+                    cout << "Recv GIMBAL_DEVICE_ATTITUDE_STATUS gimbal_device_id=" << (int)t.gimbal_device_id << " q=[" << t.q[0] << t.q[1] << t.q[2] << t.q[3] << "]" << endl;
+                    got_respond = true;
+                }
             }
         }
     }
