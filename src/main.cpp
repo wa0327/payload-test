@@ -6,6 +6,9 @@
 using namespace std;
 
 bool running = true;
+bool has_autopilot = false;
+bool has_camera = false;
+bool has_gimbal = false;
 
 void quit_handler(int)
 {
@@ -26,12 +29,14 @@ void send_heartbeat(Port *port)
     cout << "Sent HEARTBEAT" << endl;
 
     time_t start = time(nullptr);
+    bool got_respond = false;
     while (running)
     {
         time_t now = time(nullptr);
-        if (now - start > 3)
+        if (now - start > 2)
         {
-            cerr << "Cannot receive HEARTBEAT !!" << endl;
+            if (!got_respond)
+                cerr << "Cannot receive HEARTBEAT !!" << endl;
             break;
         }
 
@@ -39,11 +44,29 @@ void send_heartbeat(Port *port)
         {
             if (msg.msgid == MAVLINK_MSG_ID_HEARTBEAT)
             {
-                cout << "Got HEARTBEAT: ";
                 mavlink_heartbeat_t t;
                 mavlink_msg_heartbeat_decode(&msg, &t);
-                cout << "autopilot=" << (int)t.autopilot << " type=" << t.type << endl;
-                break;
+                // cout << "Recv HEARTBEAT " << (int)msg.compid << " autopilot=" << (int)t.autopilot << " type=" << t.type << endl;
+                got_respond = true;
+
+                if (msg.compid == MAV_COMP_ID_AUTOPILOT1)
+                {
+                    if (not has_autopilot)
+                        cout << "AutoPilot found" << endl;
+                    has_autopilot = true;
+                }
+                else if (msg.compid == MAV_COMP_ID_CAMERA)
+                {
+                    if (not has_camera)
+                        cout << "Camera found" << endl;
+                    has_camera = true;
+                }
+                else if (msg.compid == MAV_COMP_ID_GIMBAL)
+                {
+                    if (not has_gimbal)
+                        cout << "Gimbal found" << endl;
+                    has_gimbal = true;
+                }
             }
         }
     }
@@ -79,11 +102,9 @@ void get_camera_settings(Port *port)
         {
             if (msg.msgid == MAVLINK_MSG_ID_CAMERA_SETTINGS)
             {
-                cout << "Got CAMERA_SETTINGS: ";
                 mavlink_camera_settings_t t;
                 mavlink_msg_camera_settings_decode(&msg, &t);
-                cout << "camera_device_id=" << (int)t.camera_device_id << " zoomLevel=" << t.zoomLevel << endl;
-                break;
+                cout << "Recv CAMERA_SETTINGS camera_device_id=" << (int)t.camera_device_id << " zoomLevel=" << t.zoomLevel << endl;
             }
         }
     }
@@ -124,7 +145,7 @@ void set_camera_zoom_range(Port *port, int range)
             {
                 mavlink_camera_settings_t t;
                 mavlink_msg_camera_settings_decode(&msg, &t);
-                cout << "camera_device_id=" << (int)t.camera_device_id << " zoomLevel=" << t.zoomLevel << endl;
+                cout << "Recv CAMERA_SETTINGS camera_device_id=" << (int)t.camera_device_id << " zoomLevel=" << t.zoomLevel << endl;
                 got_respond = true;
             }
         }
@@ -161,10 +182,9 @@ void get_gimbal_manager_info(Port *port)
         {
             if (msg.msgid == MAVLINK_MSG_ID_GIMBAL_MANAGER_INFORMATION)
             {
-                cout << "Got GIMBAL_MANAGER_INFORMATION: ";
                 mavlink_gimbal_manager_information_t t;
                 mavlink_msg_gimbal_manager_information_decode(&msg, &t);
-                cout << "gimbal_device_id=" << (int)t.gimbal_device_id << " cap_flags=" << t.cap_flags << endl;
+                cout << "Recv GIMBAL_MANAGER_INFORMATION gimbal_device_id=" << (int)t.gimbal_device_id << " cap_flags=" << t.cap_flags << endl;
                 break;
             }
         }
@@ -207,7 +227,7 @@ void set_gimbal_manager_attitude(Port *port, float pitch, float yaw)
             {
                 mavlink_gimbal_device_attitude_status_t t;
                 mavlink_msg_gimbal_device_attitude_status_decode(&msg, &t);
-                cout << "gimbal_device_id=" << (int)t.gimbal_device_id << " q=[" << t.q[0] << t.q[1] << t.q[2] << t.q[3] << "]" << endl;
+                cout << "Recv GIMBAL_DEVICE_ATTITUDE_STATUS gimbal_device_id=" << (int)t.gimbal_device_id << " q=[" << t.q[0] << t.q[1] << t.q[2] << t.q[3] << "]" << endl;
                 got_respond = true;
             }
         }
@@ -244,10 +264,9 @@ void get_gimbal_device_info(Port *port)
         {
             if (msg.msgid == MAVLINK_MSG_ID_GIMBAL_DEVICE_INFORMATION)
             {
-                cout << "Got GIMBAL_DEVICE_INFORMATION: ";
                 mavlink_gimbal_device_information_t t;
                 mavlink_msg_gimbal_device_information_decode(&msg, &t);
-                cout << "gimbal_device_id=" << (int)t.gimbal_device_id << " vendor_name=" << t.vendor_name << "model_name=" << t.model_name << endl;
+                cout << "Recv GIMBAL_DEVICE_INFORMATION gimbal_device_id=" << (int)t.gimbal_device_id << " vendor_name=" << t.vendor_name << "model_name=" << t.model_name << endl;
                 break;
             }
         }
@@ -289,7 +308,7 @@ void set_gimbal_device_attitude(Port *port, float pitch, float yaw)
             {
                 mavlink_gimbal_device_attitude_status_t t;
                 mavlink_msg_gimbal_device_attitude_status_decode(&msg, &t);
-                cout << "gimbal_device_id=" << (int)t.gimbal_device_id << " q=[" << t.q[0] << t.q[1] << t.q[2] << t.q[3] << "]" << endl;
+                cout << "Recv GIMBAL_DEVICE_ATTITUDE_STATUS gimbal_device_id=" << (int)t.gimbal_device_id << " q=[" << t.q[0] << t.q[1] << t.q[2] << t.q[3] << "]" << endl;
                 got_respond = true;
             }
         }
@@ -325,15 +344,24 @@ int main(int argc, char **argv)
     signal(SIGINT, quit_handler);
 
     send_heartbeat(port);
-    get_camera_settings(port);
-    set_camera_zoom_range(port, 100);
-    set_camera_zoom_range(port, 0);
-    get_gimbal_manager_info(port);
-    set_gimbal_manager_attitude(port, -M_PI_4, M_PI_2);
-    set_gimbal_manager_attitude(port, 0, 0);
-    get_gimbal_device_info(port);
-    set_gimbal_device_attitude(port, -M_PI_4, M_PI_2);
-    set_gimbal_device_attitude(port, 0, 0);
+    if (has_camera)
+    {
+        get_camera_settings(port);
+        set_camera_zoom_range(port, 100);
+        set_camera_zoom_range(port, 0);
+    }
+    if (has_autopilot)
+    {
+        get_gimbal_manager_info(port);
+        set_gimbal_manager_attitude(port, -M_PI_4, M_PI_2);
+        set_gimbal_manager_attitude(port, 0, 0);
+    }
+    if (has_gimbal)
+    {
+        get_gimbal_device_info(port);
+        set_gimbal_device_attitude(port, -M_PI_4, M_PI_2);
+        set_gimbal_device_attitude(port, 0, 0);
+    }
 
     delete port;
 
