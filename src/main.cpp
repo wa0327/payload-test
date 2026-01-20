@@ -92,7 +92,7 @@ void get_camera_settings(Port *port)
     while (running)
     {
         time_t now = time(nullptr);
-        if (now - start > 2)
+        if (now - start > 1)
         {
             cerr << "Cannot receive CAMERA_SETTINGS !!" << endl;
             break;
@@ -132,7 +132,7 @@ void set_camera_zoom_range(Port *port, int range)
     while (running)
     {
         time_t now = time(nullptr);
-        if (now - start > 2)
+        if (now - start > 1)
         {
             if (!got_respond)
                 cerr << "Cannot receive CAMERA_SETTINGS !!" << endl;
@@ -172,7 +172,7 @@ void get_gimbal_manager_info(Port *port)
     while (running)
     {
         time_t now = time(nullptr);
-        if (now - start > 2)
+        if (now - start > 1)
         {
             cerr << "Cannot receive GIMBAL_MANAGER_INFORMATION !!" << endl;
             break;
@@ -229,7 +229,9 @@ void set_gimbal_manager_attitude(Port *port, float pitch, float yaw)
                 mavlink_msg_gimbal_device_attitude_status_decode(&msg, &t);
                 if (msg.compid == MAV_COMP_ID_GIMBAL)
                 {
-                    cout << "Recv GIMBAL_DEVICE_ATTITUDE_STATUS gimbal_device_id=" << (int)t.gimbal_device_id << " q=[" << t.q[0] << t.q[1] << t.q[2] << t.q[3] << "]" << endl;
+                    float roll, pitch, yaw;
+                    mavlink_quaternion_to_euler(t.q, &roll, &pitch, &yaw);
+                    cout << "Recv GIMBAL_DEVICE_ATTITUDE_STATUS gimbal_device_id=" << (int)t.gimbal_device_id << " roll=" << roll / M_PI * 180 << " pitch=" << pitch / M_PI * 180 << " yaw=" << yaw / M_PI * 180 << "]" << endl;
                     got_respond = true;
                 }
             }
@@ -257,7 +259,7 @@ void get_gimbal_device_info(Port *port)
     while (running)
     {
         time_t now = time(nullptr);
-        if (now - start > 2)
+        if (now - start > 1)
         {
             cerr << "Cannot receive GIMBAL_DEVICE_INFORMATION !!" << endl;
             break;
@@ -313,7 +315,9 @@ void set_gimbal_device_attitude(Port *port, float pitch, float yaw)
                 mavlink_msg_gimbal_device_attitude_status_decode(&msg, &t);
                 if (msg.compid == MAV_COMP_ID_GIMBAL)
                 {
-                    cout << "Recv GIMBAL_DEVICE_ATTITUDE_STATUS gimbal_device_id=" << (int)t.gimbal_device_id << " q=[" << t.q[0] << t.q[1] << t.q[2] << t.q[3] << "]" << endl;
+                    float roll, pitch, yaw;
+                    mavlink_quaternion_to_euler(t.q, &roll, &pitch, &yaw);
+                    cout << "Recv GIMBAL_DEVICE_ATTITUDE_STATUS gimbal_device_id=" << (int)t.gimbal_device_id << " roll=" << roll / M_PI * 180 << " pitch=" << pitch / M_PI * 180 << " yaw=" << yaw / M_PI * 180 << "]" << endl;
                     got_respond = true;
                 }
             }
