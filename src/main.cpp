@@ -47,7 +47,7 @@ void send_heartbeat(Port *port)
             {
                 mavlink_heartbeat_t t;
                 mavlink_msg_heartbeat_decode(&msg, &t);
-                // cout << "Recv HEARTBEAT " << (int)msg.compid << " autopilot=" << (int)t.autopilot << " type=" << t.type << endl;
+                cout << "Recv HEARTBEAT " << (int)msg.compid << " autopilot=" << (int)t.autopilot << " type=" << t.type << " version=" << t.mavlink_version << endl;
                 got_respond = true;
 
                 if (msg.compid == MAV_COMP_ID_AUTOPILOT1)
@@ -112,6 +112,7 @@ void get_camera_info(Port *port)
                 mavlink_camera_information_t t;
                 mavlink_msg_camera_information_decode(&msg, &t);
                 cout << "Recv CAMERA_INFORMATION camera_device_id=" << (int)t.camera_device_id << " model_name=" << t.model_name << " resolution=" << t.resolution_h << "x" << t.resolution_v << endl;
+                break;
             }
         }
     }
@@ -150,6 +151,7 @@ void get_camera_settings(Port *port)
                 mavlink_camera_settings_t t;
                 mavlink_msg_camera_settings_decode(&msg, &t);
                 cout << "Recv CAMERA_SETTINGS camera_device_id=" << (int)t.camera_device_id << " zoomLevel=" << t.zoomLevel << endl;
+                break;
             }
         }
     }
@@ -179,7 +181,7 @@ void set_camera_zoom_range(Port *port, int range)
         time_t now = time(nullptr);
         if (now - start > 1)
         {
-            if (!got_respond)
+            if (not got_respond)
                 cerr << "Cannot receive CAMERA_SETTINGS !!" << endl;
             break;
         }
