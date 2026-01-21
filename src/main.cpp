@@ -47,7 +47,7 @@ void send_heartbeat(Port *port)
             {
                 mavlink_heartbeat_t t;
                 mavlink_msg_heartbeat_decode(&msg, &t);
-                cout << "Recv HEARTBEAT " << (int)msg.compid << " autopilot=" << (int)t.autopilot << " type=" << (int)t.type << " version=" << (int)t.mavlink_version << endl;
+                // cout << "Recv HEARTBEAT " << (int)msg.compid << " autopilot=" << (int)t.autopilot << " type=" << (int)t.type << " version=" << (int)t.mavlink_version << endl;
                 got_respond = true;
 
                 if (msg.compid == MAV_COMP_ID_AUTOPILOT1)
@@ -408,7 +408,7 @@ int main(int argc, char **argv)
         set_camera_zoom_range(port, camera_id.value(), 100);
         set_camera_zoom_range(port, camera_id.value(), 0);
     }
-    else
+    else if (autopilot_id)
     {
         get_camera_info(port, 0);
         get_camera_settings(port, 0);
