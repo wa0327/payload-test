@@ -2,13 +2,14 @@
 #include "port.hpp"
 #include <iostream>
 #include <csignal>
+#include <optional>
 
 using namespace std;
 
 bool running = true;
-bool has_autopilot = false;
-bool has_camera = false;
-bool has_gimbal = false;
+optional<uint8_t> autopilot_id;
+optional<uint8_t> camera_id;
+optional<uint8_t> gimbal_id;
 
 void quit_handler(int)
 {
@@ -51,21 +52,27 @@ void send_heartbeat(Port *port)
 
                 if (msg.compid == MAV_COMP_ID_AUTOPILOT1)
                 {
-                    if (not has_autopilot)
+                    if (not autopilot_id)
+                    {
                         cout << "AutoPilot found" << endl;
-                    has_autopilot = true;
+                        autopilot_id = msg.compid;
+                    }
                 }
-                else if (msg.compid == MAV_COMP_ID_CAMERA)
+                else if (msg.compid == MAV_COMP_ID_CAMERA || msg.compid == MAV_COMP_ID_CAMERA2 || msg.compid == MAV_COMP_ID_CAMERA3 || msg.compid == MAV_COMP_ID_CAMERA4 || msg.compid == MAV_COMP_ID_CAMERA5 || msg.compid == MAV_COMP_ID_CAMERA6)
                 {
-                    if (not has_camera)
+                    if (not camera_id)
+                    {
                         cout << "Camera found" << endl;
-                    has_camera = true;
+                        camera_id = msg.compid;
+                    }
                 }
-                else if (msg.compid == MAV_COMP_ID_GIMBAL)
+                else if (msg.compid == MAV_COMP_ID_GIMBAL || msg.compid == MAV_COMP_ID_GIMBAL2 || msg.compid == MAV_COMP_ID_GIMBAL3 || msg.compid == MAV_COMP_ID_GIMBAL4 || msg.compid == MAV_COMP_ID_GIMBAL5 || msg.compid == MAV_COMP_ID_GIMBAL6)
                 {
-                    if (not has_gimbal)
+                    if (not gimbal_id)
+                    {
                         cout << "Gimbal found" << endl;
-                    has_gimbal = true;
+                        gimbal_id = msg.compid;
+                    }
                 }
             }
         }
@@ -80,7 +87,7 @@ void get_camera_info(Port *port)
         MAV_COMP_ID_ONBOARD_COMPUTER,
         &msg,
         1,
-        MAV_COMP_ID_CAMERA,
+        camera_id.value(),
         MAV_CMD_REQUEST_MESSAGE,
         0,
         MAVLINK_MSG_ID_CAMERA_INFORMATION,
@@ -104,7 +111,7 @@ void get_camera_info(Port *port)
             {
                 mavlink_camera_information_t t;
                 mavlink_msg_camera_information_decode(&msg, &t);
-                cout << "Recv CAMERA_INFORMATION camera_device_id=" << (int)t.camera_device_id << " model_name=" << t.model_name << " resolution=" << t.resolution_h << "x" << t.resolution_v  << endl;
+                cout << "Recv CAMERA_INFORMATION camera_device_id=" << (int)t.camera_device_id << " model_name=" << t.model_name << " resolution=" << t.resolution_h << "x" << t.resolution_v << endl;
             }
         }
     }
@@ -118,7 +125,7 @@ void get_camera_settings(Port *port)
         MAV_COMP_ID_ONBOARD_COMPUTER,
         &msg,
         1,
-        MAV_COMP_ID_CAMERA,
+        camera_id.value(),
         MAV_CMD_REQUEST_MESSAGE,
         0,
         MAVLINK_MSG_ID_CAMERA_SETTINGS,
@@ -156,7 +163,7 @@ void set_camera_zoom_range(Port *port, int range)
         MAV_COMP_ID_ONBOARD_COMPUTER,
         &msg,
         1,
-        MAV_COMP_ID_CAMERA,
+        camera_id.value(),
         MAV_CMD_SET_CAMERA_ZOOM,
         0,
         CAMERA_ZOOM_TYPE::ZOOM_TYPE_RANGE,
@@ -198,7 +205,7 @@ void get_gimbal_manager_info(Port *port)
         MAV_COMP_ID_ONBOARD_COMPUTER,
         &msg,
         1,
-        MAV_COMP_ID_AUTOPILOT1,
+        autopilot_id.value(),
         MAV_CMD_REQUEST_MESSAGE,
         0,
         MAVLINK_MSG_ID_GIMBAL_MANAGER_INFORMATION,
@@ -239,7 +246,7 @@ void set_gimbal_manager_attitude(Port *port, float pitch, float yaw)
         MAV_COMP_ID_ONBOARD_COMPUTER,
         &msg,
         1,
-        MAV_COMP_ID_AUTOPILOT1,
+        autopilot_id.value(),
         GIMBAL_MANAGER_FLAGS_YAW_IN_VEHICLE_FRAME,
         0,
         q,
@@ -285,7 +292,7 @@ void get_gimbal_device_info(Port *port)
         MAV_COMP_ID_ONBOARD_COMPUTER,
         &msg,
         1,
-        MAV_COMP_ID_GIMBAL,
+        gimbal_id.value(),
         MAV_CMD_REQUEST_MESSAGE,
         0,
         MAVLINK_MSG_ID_GIMBAL_DEVICE_INFORMATION,
@@ -326,7 +333,7 @@ void set_gimbal_device_attitude(Port *port, float pitch, float yaw)
         MAV_COMP_ID_ONBOARD_COMPUTER,
         &msg,
         1,
-        MAV_COMP_ID_GIMBAL,
+        gimbal_id.value(),
         GIMBAL_DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME,
         q,
         NAN, NAN, NAN);
@@ -392,20 +399,20 @@ int main(int argc, char **argv)
     signal(SIGINT, quit_handler);
 
     send_heartbeat(port);
-    if (has_camera)
+    if (camera_id)
     {
         get_camera_info(port);
         get_camera_settings(port);
         set_camera_zoom_range(port, 100);
         set_camera_zoom_range(port, 0);
     }
-    if (has_autopilot)
+    if (autopilot_id)
     {
         get_gimbal_manager_info(port);
         set_gimbal_manager_attitude(port, -M_PI_4, M_PI_2);
         set_gimbal_manager_attitude(port, 0, 0);
     }
-    if (has_gimbal)
+    if (gimbal_id)
     {
         get_gimbal_device_info(port);
         set_gimbal_device_attitude(port, -M_PI_4, M_PI_2);
