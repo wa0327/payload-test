@@ -47,7 +47,7 @@ void send_heartbeat(Port *port)
             {
                 mavlink_heartbeat_t t;
                 mavlink_msg_heartbeat_decode(&msg, &t);
-                cout << "Recv HEARTBEAT " << (int)msg.compid << " autopilot=" << (int)t.autopilot << " type=" << t.type << " version=" << t.mavlink_version << endl;
+                cout << "Recv HEARTBEAT " << (int)msg.compid << " autopilot=" << (int)t.autopilot << " type=" << (int)t.type << " version=" << (int)t.mavlink_version << endl;
                 got_respond = true;
 
                 if (msg.compid == MAV_COMP_ID_AUTOPILOT1)
@@ -79,7 +79,7 @@ void send_heartbeat(Port *port)
     }
 }
 
-void get_camera_info(Port *port)
+void get_camera_info(Port *port, uint8_t camera_id)
 {
     mavlink_message_t msg;
     mavlink_msg_command_long_pack(
@@ -87,7 +87,7 @@ void get_camera_info(Port *port)
         MAV_COMP_ID_ONBOARD_COMPUTER,
         &msg,
         1,
-        camera_id.value(),
+        camera_id,
         MAV_CMD_REQUEST_MESSAGE,
         0,
         MAVLINK_MSG_ID_CAMERA_INFORMATION,
@@ -118,7 +118,7 @@ void get_camera_info(Port *port)
     }
 }
 
-void get_camera_settings(Port *port)
+void get_camera_settings(Port *port, uint8_t camera_id)
 {
     mavlink_message_t msg;
     mavlink_msg_command_long_pack(
@@ -126,7 +126,7 @@ void get_camera_settings(Port *port)
         MAV_COMP_ID_ONBOARD_COMPUTER,
         &msg,
         1,
-        camera_id.value(),
+        camera_id,
         MAV_CMD_REQUEST_MESSAGE,
         0,
         MAVLINK_MSG_ID_CAMERA_SETTINGS,
@@ -157,7 +157,7 @@ void get_camera_settings(Port *port)
     }
 }
 
-void set_camera_zoom_range(Port *port, int range)
+void set_camera_zoom_range(Port *port, uint8_t camera_id, int range)
 {
     mavlink_message_t msg;
     mavlink_msg_command_long_pack(
@@ -165,7 +165,7 @@ void set_camera_zoom_range(Port *port, int range)
         MAV_COMP_ID_ONBOARD_COMPUTER,
         &msg,
         1,
-        camera_id.value(),
+        camera_id,
         MAV_CMD_SET_CAMERA_ZOOM,
         0,
         CAMERA_ZOOM_TYPE::ZOOM_TYPE_RANGE,
@@ -403,10 +403,17 @@ int main(int argc, char **argv)
     send_heartbeat(port);
     if (camera_id)
     {
-        get_camera_info(port);
-        get_camera_settings(port);
-        set_camera_zoom_range(port, 100);
-        set_camera_zoom_range(port, 0);
+        get_camera_info(port, camera_id.value());
+        get_camera_settings(port, camera_id.value());
+        set_camera_zoom_range(port, camera_id.value(), 100);
+        set_camera_zoom_range(port, camera_id.value(), 0);
+    }
+    else
+    {
+        get_camera_info(port, 0);
+        get_camera_settings(port, 0);
+        set_camera_zoom_range(port, 0, 100);
+        set_camera_zoom_range(port, 0, 0);
     }
     if (autopilot_id)
     {
@@ -414,7 +421,7 @@ int main(int argc, char **argv)
         set_gimbal_manager_attitude(port, -M_PI_4, M_PI_2);
         set_gimbal_manager_attitude(port, 0, 0);
     }
-    if (gimbal_id)
+    else if (gimbal_id)
     {
         get_gimbal_device_info(port);
         set_gimbal_device_attitude(port, -M_PI_4, M_PI_2);
