@@ -8,6 +8,8 @@
 #include <mavlink/common/mavlink.h>
 #pragma GCC diagnostic pop
 
+enum class Protocol { UDP, TCP };
+
 class Port
 {
 private:
@@ -18,7 +20,7 @@ private:
 
 public:
     Port(const std::string &device_path, speed_t baudrate);
-    Port(const std::string &target_ip, int target_port);
+    Port(const std::string &target_ip, int target_port, Protocol protocol);
     ~Port();
 
 	bool read_message(mavlink_message_t &message);

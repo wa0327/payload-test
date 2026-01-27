@@ -47,7 +47,6 @@ void send_heartbeat(Port *port)
             {
                 mavlink_heartbeat_t t;
                 mavlink_msg_heartbeat_decode(&msg, &t);
-                // cout << "Recv HEARTBEAT " << (int)msg.compid << " autopilot=" << (int)t.autopilot << " type=" << (int)t.type << " version=" << (int)t.mavlink_version << endl;
                 got_respond = true;
 
                 if (msg.compid == MAV_COMP_ID_AUTOPILOT1)
@@ -73,6 +72,10 @@ void send_heartbeat(Port *port)
                         cout << "Gimbal found" << endl;
                         gimbal_id = msg.compid;
                     }
+                }
+                else
+                {
+                    cout << "Recv HEARTBEAT from " << (int)msg.compid << " autopilot=" << (int)t.autopilot << " type=" << (int)t.type << " version=" << (int)t.mavlink_version << endl;
                 }
             }
         }
@@ -379,8 +382,10 @@ int main(int argc, char **argv)
     app.add_option("-d,--device", device_path, "Device path, e.g. /dev/ttyUSB0");
     string udp_ip;
     app.add_option("-u,--udp", udp_ip, "UDP IP address, e.g. 192.168.144.240");
-    int udp_port = 14550;
-    app.add_option("-p,--port", udp_port, "UDP port number, default: 14550");
+    string tcp_ip;
+    app.add_option("-t,--tcp", tcp_ip, "TCP IP address, e.g. 192.168.144.240");
+    int tgt_port = 14550;
+    app.add_option("-p,--port", tgt_port, "UDP port number, default: 14550");
     CLI11_PARSE(app, argc, argv);
 
     Port *port;
@@ -390,7 +395,11 @@ int main(int argc, char **argv)
     }
     else if (!udp_ip.empty())
     {
-        port = new Port(udp_ip.c_str(), udp_port);
+        port = new Port(udp_ip.c_str(), tgt_port, Protocol::UDP);
+    }
+    else if (!tcp_ip.empty())
+    {
+        port = new Port(tcp_ip.c_str(), tgt_port, Protocol::TCP);
     }
     else
     {

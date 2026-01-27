@@ -1,4 +1,5 @@
 #include "port.hpp"
+#include <stdexcept>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -32,10 +33,10 @@ Port::Port(const std::string &device_path, speed_t baudrate)
     }
 }
 
-Port::Port(const std::string &target_ip, int target_port)
+Port::Port(const std::string &target_ip, int target_port, Protocol protocol)
     : target_ip{target_ip}, target_port{target_port}
 {
-    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    fd = socket(AF_INET, protocol == Protocol::UDP ? SOCK_DGRAM : SOCK_STREAM, 0);
     if (fd < 0)
     {
         perror("socket");
@@ -57,6 +58,23 @@ Port::Port(const std::string &target_ip, int target_port)
         perror("fcntl F_SETFL O_NONBLOCK");
         close(fd);
         throw EXIT_FAILURE;
+    }
+
+    if (protocol == Protocol::TCP)
+    {
+        struct sockaddr_in addr;
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons(target_port);
+        inet_pton(AF_INET, target_ip.c_str(), &addr.sin_addr);
+        if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+        {
+            if (errno != EINPROGRESS)
+            {
+                perror("connect");
+                close(fd);
+                throw std::runtime_error("TCP connect failed");
+            }
+        }
     }
 }
 
